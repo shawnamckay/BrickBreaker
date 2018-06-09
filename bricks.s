@@ -19,14 +19,14 @@ init_Bricks:
 
 .loop:
 	mov 	r0, counter		//Use counter to determine color value
-	bl	get_Colour		//Get color hex value
+	bl	set_Colour		//Get color hex value
 	str	r0, [r5]		//store color
 
 	mov	r0, #1			//1=Active
 	strh	r0, [r5, #4]		//Store active flag to on
 
 	mov	r0, counter		//Use counter to determine health value
-	bl	get_Health		//call get_Health
+	bl	set_Health		//call get_Health
 	strh	r0, [r5, #6]		//Store health value
 
 	strh	r6, [r5, #8] 		//Store bottom left x value
@@ -49,10 +49,22 @@ init_Bricks:
 	addeq	r7, #30			//Increment y value by 30 (height of a brick)
 	moveq	r6, #215		//Change x value to left wall of game window
 
+	cmp	counter, #15		//If brick value = 15
+	addeq	r7, #30			//Increment y value by 30 (height of a brick)
+	moveq	r6, #215		//Change x value to left wall of game window
+
+	cmp	counter, #20		//If brick value = 20
+	addeq	r7, #30			//Increment y value by 30 (height of a brick)
+	moveq	r6, #215		//Change x value to left wall of game window
+
+	cmp	counter, #25		//If brick value = 25
+	addeq	r7, #30			//Increment y value by 30 (height of a brick)
+	moveq	r6, #215		//Change x value to left wall of game window
+
 	add	counter, #1		//Increment counter
 	add	r5, #24			//Increment brick base address
 
-	cmp	counter, #15		//If counter <= 15 (number of bricks)
+	cmp	counter, #30		//If counter <= 30 (number of bricks)
 	ble	.loop			//Continue initializing bricks
 	
 	.unreq	counter			//Forget register equate
@@ -60,11 +72,53 @@ init_Bricks:
 	pop	{r4-r9, lr}		//Pop registers and lr from the stack
 	bx	lr			//Return to calling code
 
+
+
+
+//Update_Bricks Subroutine
+//Uses the brick number to mark it as inactive and update color to black
+//Input: brick number that has been collided
+//Returns: Nothing
+.global Update_Bricks
+Update_Bricks:
+	push	{r4,lr}			//Store registers and lr to the stack
+
+
+
+	mov	r1, #24			//Move 24 into r1 for multiplication
+	sub	r0, #1
+	mul	r4, r1, r0		//offset= brick number-1 *24
+
+	ldr	r0, =brick1		//get base address of bricks
+	add	r4, r0			//Update address to base+offset
+
+	ldrh	r1, [r4, #6]		//Load health amount
+	sub	r1, #1			//Health=health-1
+	strh	r1, [r4, #6]		//Store updated health
+
+	cmp	r1,#0			//If health=0, update color to black & active flag
+	bgt	done			//Else exit
+	
+
+	ldr	r0, =0xFF000000		//Load black
+	str	r0,[r4]			//update color
+
+	mov	r0, #0			//Load inactive
+	strh	r0,[r4, #4]		//update status to inactive
+
+
+done:
+
+
+	pop	{r4, lr}		//Pop register and lr from stack
+	bx	lr			//return
+
+
 .global updateBrickColor
 //updateBrickColor Subroutine
-//Uses the active 
-//
-//
+//Updates the colors of the bricks based on what is stored in memory
+//Inputs none
+//Returns nothing
 updateBrickColor:
 	push	{r4-r9, lr}		//Store registers and lr to the stack
 	counter	.req 	r4		//Register equate for counter variable
@@ -80,7 +134,7 @@ for:
 	bl 	draw_Brick		//Call draw_Brick
 	add 	counter, #1		//increment counter
 	add	r5, #24			//Offset to the next brick
-	cmp	counter, #16		//Check if counter is less than 16 (15 bricks)
+	cmp	counter, #31		//Check if counter is less than 31 (30 bricks)
 	blt	for			//If less keep looping
 	
 		
@@ -124,48 +178,35 @@ box:
 
 
 
-//get_Colour subroutine
+//set_Colour subroutine
 //Uses the brick number to assign a colour
 //Input r0= brick number
 //Returns hex color value
 
-get_Colour:
+set_Colour:
 	push 	{lr}
 
+colorLoop:
 	cmp 	r0, #1			//If brick number =1
 	beq	purple			//paint it purple
-	cmp	r0, #2			//If brick number =2
-	beq	orange			//paint it orange
-	cmp 	r0, #3			//If brick number =3
-	beq	blue			//paint it blue
 
-	cmp 	r0, #4			//If brick number =4
-	beq	purple			//paint it purple
-	cmp 	r0, #5			//If brick number =5
+	cmp 	r0, #2			//If brick number =2
+	beq	blue			//paint it orange
+
+	cmp	r0,#3			//If brick number =3
 	beq	green			//paint it green
+
+	cmp	r0,#4			//If brick number =4
+	beq	red			//paint it red
+
+	cmp	r0,#5			//If brick number =5
+	beq	orange			//paint it orange
+	
 	cmp	r0, #6			//If brick number =6
-	beq	blue			//paint it blue
+	beq	yellow			//paint it yellow
 
-	cmp 	r0, #7			//If brick number =7
-	beq	red			//paint it red
-	cmp	r0, #8			//If brick number =8
-	beq	purple			//paint it purple
-	cmp 	r0, #9			//If brick number =9
-	beq	green			//paint it green
-
-	cmp	r0, #10			//If brick number =10
-	beq	orange			//paint it orange
-	cmp	r0, #11			//If brick number =11
-	beq	green			//paint it green
-	cmp	r0, #12			//If brick number =12
-	beq	orange			//paint it orange
-
-	cmp 	r0, #13			//If brick number =13
-	beq	red			//paint it red
-	cmp 	r0, #14			//If brick number =14
-	beq	blue			//paint it blue
-	cmp	r0, #15			//If brick number =15
-	beq	purple			//paint it purple
+	sub	r0, #6			//or else subtract 6
+	b	colorLoop		//And keep looping
 
 
 red:
@@ -185,38 +226,31 @@ orange:
 
 purple:
 	ldr 	r0, =0xFFD756FF		//return Hex value for purple
+	b	end
+
+yellow:
+	ldr 	r0, =0xFFFBFF2F		//return Hex value for yellow
 	
 end:
 	pop 	{lr}
 	bx	lr
 
 
-//get_Health subroutine
+//set_Health subroutine
 //Uses the brick number to assign a health value
 //Input r0= brick number
 //Returns integer health value (1-3)
 
-get_Health:
+set_Health:
 	push 	{lr}
 
-	cmp 	r0, #1			//If brick number =1 (purple)
-	beq	three			//Health =3
-	cmp 	r0, #4			//If brick number =4 (purple)
-	beq	three			//Health =3
+	cmp 	r0, #10			//If brick number <=10
+	ble	three			//health=3
 
-	cmp	r0, #8			//If brick number =8 (purple)
-	beq 	three			//Health =3
-	cmp	r0, #15			//If brick number =15 (purple)
-	beq	three			//Health =3
+	cmp	r0,#20			//If brick number <=20
+	ble	two			//health=2
 
-	cmp 	r0, #5			//If brick number =5 (green)
-	beq	two			//Health =2
-	cmp 	r0, #9			//If brick number =9 (green)
-	beq	two			//Health =2
-	cmp	r0, #11			//If brick number =11 (green)
-	beq	two			//Health =2
-
-	mov	r0, #1			//Else return 1
+	mov	r0, #1			//Else health=1
 	b	.end
 
 three:
@@ -235,14 +269,6 @@ two:
 
 .align
 				//Describes how the data is stored in each brick object
-brickInfo:
-	.string	""		@ color
-	.int	0		@ active flag
-	.int	0		@ health
-	.int	0		@ bottom left x value
-	.int	0		@ bottom y value
-	.int	0		@ bottom right x value
-	.int	0		@ brick number
 
 .global brick1			//Brick values
 brick1:
@@ -387,6 +413,148 @@ brick14:
 
 .global brick15
 brick15:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+
+.global brick16
+brick16:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+
+
+.global brick17
+brick17:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+
+.global brick18
+brick18:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+
+.global brick19
+brick19:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+
+.global brick20
+brick20:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+
+.global brick21
+brick21:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+.global brick22
+brick22:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+.global brick23
+brick23:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+.global brick24
+brick24:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+.global brick25
+brick25:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+.global brick26
+brick26:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+.global brick27
+brick27:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+.global brick28
+brick28:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+.global brick29
+brick29:
+	.word			@ color
+	.int	0		@ active flag
+	.int	0		@ health
+	.int	0		@ bottom left x value
+	.int	0		@ bottom y value
+	.int	0		@ bottom right x value
+	.int	0		@ brick number
+.global brick30
+brick30:
 	.word			@ color
 	.int	0		@ active flag
 	.int	0		@ health

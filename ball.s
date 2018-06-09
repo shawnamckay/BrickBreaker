@@ -15,9 +15,9 @@ updateBallMovement:
 
 checkWall:
 	bl	wallCollide		//Check if the ball has collided with a wall
-	cmp	r0, #0			//If no collsions
-//	moveq	r0, r4			//Maintain current ball directions
-	beq	checkBrick		//Then check if hit a brick
+	cmp	r0, #0			//If no collisions
+	beq	checkBrickBottom	//Then check if hit a brick
+
 	cmp	r0, #1			//If left wall
 	beq	sideWall		//Jump to sidewall section
 	cmp	r0, #3			//If right wall
@@ -25,7 +25,9 @@ checkWall:
 	cmp	r0, #2			//If top wall
 	beq	topWall			//Jump to top wall section
 	cmp	r0, #4			//If floor
-	beq	midBump			//Jump to floor section
+
+	bl	decreaseLives		//Call decrease lives
+	mov	ballDirect, #3		//Update the ball direction
 
 	b	quit			//Otherwise exit
 
@@ -74,8 +76,37 @@ midBump:				//If the ball hits the middle of the bumper
 	b	quit			//Then exit
 	
 
-checkBrick:
+checkBrickBottom:
+	bl	brickBottomCollide	//Check for a brick bottom collision	
+	cmp	r0, #0			//If no collision
+	beq	checkBrickLeft		//Test if the left side of the brick has been hit
+	bl	Update_Bricks		//If collision, update the brick values
+	bl	increaseScore		//If collision, increase game score
+	b	topWall			//Then bounce the ball like it has hit the ceiling
 
+checkBrickLeft:
+	bl	brickLeftCollide	//Check for a brick Left collision	
+	cmp	r0, #0			//If no collision
+	beq	checkBrickRight		//Test if the right side of the brick has been hit
+	bl	Update_Bricks		//If collision, update the brick values
+	bl	increaseScore		//If collision, increase game score
+	b	sideWall		//Then bounce the ball like it has hit a side wall
+
+checkBrickRight:
+	bl	brickRightCollide	//Check for a brick Left collision	
+	cmp	r0, #0			//If no collision
+	beq	checkBrickTop		//Test if the bumper has been hit
+	bl	Update_Bricks		//If collision, update the brick values
+	bl	increaseScore		//If collision, increase game score
+	b	sideWall		//Then bounce the ball like it has hit a side wall
+
+checkBrickTop:
+	bl	brickTopCollide		//Check for a brick Left collision	
+	cmp	r0, #0			//If no collision
+	beq	checkBumper		//Test if the bumper has been hit
+	bl	Update_Bricks		//If collision, update the brick values
+	bl	increaseScore		//If collision, increase game score
+	b	midBump			//Then bounce the ball like it has hit the middle of the bumper
 
 checkBumper:
 	bl	bumperCollide		//Check if the ball has collided with the bumper
@@ -110,25 +141,35 @@ moveBall:
 	mov	r4, r0			//Save the current ball direction
 
 	cmp	r4, #1			//If moving left down
-	bleq	MoveLeftDown		//continue moving left down
+	moveq	r0, #-8
+	moveq	r1, #8
+	bleq	movementOfBall		//continue moving left down	
 	beq	end			//then exit
 
 	cmp	r4, #2			//If moving left up
-	bleq	MoveLeftUp		//continue moving left up
+	moveq	r0, #-8
+	moveq	r1, #-8
+	bleq	movementOfBall		//continue moving left up	
 	beq	end			//then exit
 
 	cmp	r4, #3			//If moving right down
-	bleq	MoveRightDown		//continue moving right down
+	moveq	r0, #8
+	moveq	r1, #8
+	bleq	movementOfBall		//continue moving right down
 	beq	end			//then exit
 
 	cmp	r4, #4			//If moving right up
-	bleq	MoveRightUp		//continue moving right up
+	moveq	r0, #8
+	moveq	r1, #-8
+	bleq	movementOfBall		//continue moving right up
 	beq	end			//then exit
 
 end:
 	pop	{r4, lr}		//Pop registers and lr from the stack
 	bx	lr			//Return to calling code
 	
+
+
 
 .global	drawBall
 
@@ -251,51 +292,23 @@ exit:
 	bx	lr			//Return to calling code
 
 
-//MoveLeftUp Subroutine
-//Moves the ball diagonally left & up on the screen 
-//Input: None
+
+//movement of ball Subroutine
+//Moves the ball diagonally on the screen 
+//Input: r0= x movement, r1 = y movement
 //Returns nothing
-.global MoveLeftUp
-MoveLeftUp:
+.global movementOfBall
+movementOfBall:
 	push	{r4-r5, lr}		//Store registers and lr to the stack
 
-	ldr	r1, =ballData		//Balls leftmost value address
-	ldrh	r4, [r1]		//Balls leftmost value
-	sub	r4, #8			//Move left
-	strh	r4, [r1]		//Update value in memory
+	ldr	r2, =ballData		//Balls leftmost value address
+	ldrh	r4, [r2]		//Balls leftmost value
+	add	r4, r0			//Move left or right
+	strh	r4, [r2]		//Update value in memory
 	
-	ldrh	r5, [r1, #4]		//Balls top y value
-	sub	r5, #8			//Move up
-	strh	r5, [r1, #4]		//Update value in memory
-
-	mov	r0, r4			//Move leftmost x value
-	mov	r1, r5			//Move topmost y value
-	bl	drawBall		//Draw ball in new position
-
-	mov	r0, r4			//Move leftmost x value
-	mov	r1, r5			//Move top most y value
-	bl	UpdateBallPosition	//Update ball position markers in memory
-	
-
-	pop	{r4-r5, lr}		//Pop registers and lr from the stack
-	bx	lr			//Return to calling code
-
-//MoveLeftDown Subroutine
-//Moves the ball diagonally left & down on the screen 
-//Input: None
-//Returns nothing
-.global MoveLeftDown
-MoveLeftDown:
-	push	{r4-r5, lr}		//Store registers and lr to the stack
-
-	ldr	r1, =ballData		//Balls leftmost value address
-	ldrh	r4, [r1]		//Balls leftmost value
-	sub	r4, #8			//Move left
-	strh	r4, [r1]		//Update value in memory
-	
-	ldrh	r5, [r1, #4]		//Balls top y value
-	add	r5, #8			//Move down
-	strh	r5, [r1, #4]		//Update value in memory
+	ldrh	r5, [r2, #4]		//Balls top y value
+	add	r5, r1			//Move up or down
+	strh	r5, [r2, #4]		//Update value in memory
 
 	mov	r0, r4			//Move leftmost x value
 	mov	r1, r5			//Move topmost y value
@@ -309,70 +322,16 @@ MoveLeftDown:
 	pop	{r4-r5, lr}		//Pop registers and lr from the stack
 	bx	lr			//Return to calling code 
 
-//MoveRightDown Subroutine
-//Moves the ball diagonally righ & down on the screen 
-//Input: None
-//Returns nothing
-.global MoveRightDown
-MoveRightDown:
-	push	{r4-r5, lr}		//Store registers and lr to the stack
-
-	ldr	r1, =ballData		//Balls leftmost value address
-	ldrh	r4, [r1]		//Balls leftmost value
-	add	r4, #8			//Move right
-	strh	r4, [r1]		//Update value in memory
-	
-	ldrh	r5, [r1, #4]		//Balls top y value
-	add	r5, #8			//Move down
-	strh	r5, [r1, #4]		//Update value in memory
-
-	mov	r0, r4			//Move leftmost x value
-	mov	r1, r5			//Move topmost y value
-	bl	drawBall		//Draw ball in new position
-
-	mov	r0, r4			//Move leftmost x value
-	mov	r1, r5			//Move top most y value
-	bl	UpdateBallPosition	//Update ball position markers in memory
-	
-
-	pop	{r4-r5, lr}		//Pop registers and lr from the stack
-	bx	lr			//Return to calling code
 
 
-//MoveRightUp Subroutine
-//Moves the ball diagonally right & up on the screen 
-//Input: None
-//Returns nothing
-.global MoveRightUp
-MoveRightUp:
-	push	{r4-r5, lr}		//Store registers and lr to the stack
 
-	ldr	r1, =ballData		//Balls leftmost value address
-	ldrh	r4, [r1]		//Balls leftmost value
-	add	r4, #8			//Move right
-	strh	r4, [r1]		//Update value in memory
-	
-	ldrh	r5, [r1, #4]		//Balls top y value
-	sub	r5, #8			//Move up
-	strh	r5, [r1, #4]		//Update value in memory
-
-	mov	r0, r4			//Move leftmost x value
-	mov	r1, r5			//Move topmost y value
-	bl	drawBall		//Draw ball in new position
-
-	mov	r0, r4			//Move leftmost x value
-	mov	r1, r5			//Move top most y value
-	bl	UpdateBallPosition	//Update ball position markers in memory
-	
-
-	pop	{r4-r5, lr}		//Pop registers and lr from the stack
-	bx	lr			//Return to calling code
 
 //UpdateBallPosition Subroutine
 //Updates the balls position based on the offsets from the top x value and top y value
 //Then stores updated information in ballData
 //Inputs r0=leftmost x, r1=top most y
 //Returns nothing
+.global UpdateBallPosition
 UpdateBallPosition:
 	push	{r4-r5, lr}		//Store registers and lr to the stack
 	
@@ -408,7 +367,7 @@ UpdateBallPosition:
 	strh	r2, [r0]		//Store updated value right top
 	add	r2, #8			//Left bottom/Right bottom y = top right/top left + 8
 	strh	r2, [r0, #4]		//Store right bottom
-	add	r1, r4, #26		//Right x value
+	add	r1, r4, #24		//Right x value
 	strh	r1, [r0, #8]		//x value
 
 	

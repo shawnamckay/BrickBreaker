@@ -88,7 +88,7 @@ drawBlack:
 	
 
 	mov	r4, #215		@ x
-	mov	r5, #306		@ y
+	ldr	r5, =#396		@ y
 	ldr	r6, =#685
 	ldr	r7, =#885
 
@@ -104,6 +104,38 @@ box:
 	add	r5, #1			//Increment y value by one
 	cmp	r5, r7			//Check if at the bottom of the gameboard
 	blt	box			//If not keep drawing
+	
+	pop	{r4-r7, lr}		//Pop registers and lr from the stack
+	bx	lr			//Return to calling code
+
+
+
+//blackOut subroutine
+//Blacks out the game play
+//Inputs none
+//Returns nothing
+.global blackOut
+blackOut:
+	push	{r4-r7, lr}		//Store registers and lr to the stack
+	
+
+	mov	r4, #200		@ x
+	mov	r5, #200		@ y
+	ldr	r6, =#700
+	ldr	r7, =#900
+
+square:
+	mov	r0, r4			//Move x value into r0
+	mov	r1, r5			//Move y value into r1
+	ldr	r2, =0xFF000000		@ colour
+	bl	DrawPixel		//Call drawPixel
+	add	r4, #1			//Increment x value by one
+	cmp	r4, r6			//Check if x value is less than gameboard size
+	blt	square			//If have not reached end of gameboard, keep drawing right
+	mov	r4, #200		//Restart at left side of the gameboard
+	add	r5, #1			//Increment y value by one
+	cmp	r5, r7			//Check if at the bottom of the gameboard
+	blt	square			//If not keep drawing
 	
 	pop	{r4-r7, lr}		//Pop registers and lr from the stack
 	bx	lr			//Return to calling code
